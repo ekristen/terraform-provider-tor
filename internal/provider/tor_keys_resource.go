@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/ed25519"
+	"crypto/sha512"
 	"encoding/base32"
 	"encoding/base64"
 	"fmt"
@@ -90,10 +91,12 @@ func (r *TorKeys) Create(ctx context.Context, req resource.CreateRequest, resp *
 		return
 	}
 
+	secretKeyExpanded := expandSecretKey(secretKey)
+
 	onionAddress := fmt.Sprintf("%s.onion", encodePublicKey(publicKey))
 
 	publicKeyData := append([]byte("== ed25519v1-public: type0 ==\x00\x00\x00"), publicKey...)
-	secretKeyData := append([]byte("== ed25519v1-secret: type0 ==\x00\x00\x00"), secretKey[:]...)
+	secretKeyData := append([]byte("== ed25519v1-secret: type0 ==\x00\x00\x00"), secretKeyExpanded[:]...)
 
 	// Set the computed value
 	data.ID = types.StringValue(id.String())
@@ -168,4 +171,13 @@ func encodePublicKey(publicKey ed25519.PublicKey) string {
 	onionAddress := b32Enc.EncodeToString(onionAddressBytes.Bytes())
 
 	return onionAddress
+}
+
+func expandSecretKey(secretKey ed25519.PrivateKey) [64]byte {
+	hash := sha512.Sum512(secretKey[:32])
+	// clamp the blinding factor 'h' according to the ed25519 spec
+	hash[0] &= 248
+	hash[31] &= 127
+	hash[31] |= 64
+	return hash
 }
