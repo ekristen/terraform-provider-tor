@@ -92,11 +92,14 @@ func (r *TorKeys) Create(ctx context.Context, req resource.CreateRequest, resp *
 
 	onionAddress := fmt.Sprintf("%s.onion", encodePublicKey(publicKey))
 
+	publicKeyData := append([]byte("== ed25519v1-public: type0 ==\x00\x00\x00"), publicKey...)
+	secretKeyData := append([]byte("== ed25519v1-secret: type0 ==\x00\x00\x00"), secretKey[:]...)
+
 	// Set the computed value
 	data.ID = types.StringValue(id.String())
 	data.Address = types.StringValue(onionAddress)
-	data.PublicKey = types.StringValue(base64.StdEncoding.EncodeToString(publicKey))
-	data.PrivateKey = types.StringValue(base64.StdEncoding.EncodeToString(secretKey))
+	data.PublicKey = types.StringValue(base64.StdEncoding.EncodeToString(publicKeyData))
+	data.PrivateKey = types.StringValue(base64.StdEncoding.EncodeToString(secretKeyData))
 
 	fmt.Println(data.Address)
 
